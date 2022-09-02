@@ -6,3 +6,8 @@ target/
 .metals/
 .vscode/
 .bloop/
+.DS_Store
+.envrc
+.scalafmt.conf
+project/build.properties
+**/metals.*
