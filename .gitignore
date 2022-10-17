@@ -6,4 +6,9 @@ target/
 .metals/
 .vscode/
 .bloop/
+**/.DS_Store
+**/metals.log
+.metals/
+**/metals.*
 .DS_Store
+.metals/metals.lock.db
