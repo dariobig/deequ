@@ -22,10 +22,18 @@ import org.apache.spark.sql.types.{
   StructType
 }
 import org.apache.spark.sql.{DataFrame, Row, SparkSession}
+import com.amazon.deequ.profiles.{
+  ColumnProfile,
+  StandardColumnProfile,
+  NumericColumnProfile
+}
+import com.amazon.deequ.analyzers.{DataTypeInstances}
+import com.amazon.deequ.metrics.Distribution
+import org.scalamock.scalatest.MockFactory
 
 import scala.util.Random
 
-trait FixtureSupport {
+trait FixtureSupport extends MockFactory {
 
   def getEmptyColumnDataDf(sparkSession: SparkSession): DataFrame = {
     import sparkSession.implicits._
@@ -159,34 +167,6 @@ trait FixtureSupport {
       ("5", "b", null),
       ("6", "a", "f")
     ).toDF("item", "att1", "att2")
-  }
-
-  case class NumericRow(
-      item: String,
-      completeInteger: Integer,
-      completeDouble: Double,
-      incompleteInteger: Option[Integer],
-      incompleteDouble: Option[Double],
-      att1: String
-      )
-
-  def getDfCompleteAndInCompleteColumnsNumeric(
-      sparkSession: SparkSession
-  ): DataFrame = {
-
-    val rows: Seq[NumericRow] = Seq(
-      NumericRow("1", 1, 1.01, Some(1), Some(1.01), "f"),
-      NumericRow("2", 2, 2.01, None, None, "d"),
-      NumericRow("3", 3, 3.01, Some(3), Some(3.01), null),
-      NumericRow("4", 4, 4.01, None, None, "f"),
-      NumericRow("5", 5, 5.01, Some(5), Some(5.01), null),
-      NumericRow("6", 6, 6.01, Some(6), Some(6.01), "f"),
-      NumericRow("6", 7, 7.01, Some(7), Some(7.01), "f"),
-      NumericRow("6", 8, 8.01, Some(8), Some(8.01), "f"),
-      NumericRow("6", 9, 9.01, Some(9), Some(9.01), "f")
-    )
-
-    sparkSession.sqlContext.createDataFrame(rows)
   }
 
   def getDfCompleteAndInCompleteColumnsDelta(
@@ -375,5 +355,112 @@ trait FixtureSupport {
       "ccc",
       "dddd"
     ).toDF("att1")
+  }
+
+  private[this] def getFakeColumnProfileWithName(
+      columnName: String
+  ): ColumnProfile = {
+
+    val fakeColumnProfile = mock[ColumnProfile]
+    inSequence {
+      (fakeColumnProfile.column _)
+        .expects()
+        .returns(columnName)
+        .anyNumberOfTimes()
+    }
+
+    fakeColumnProfile
+  }
+
+  def getFakeColumnProfileWithNameAndCompleteness(
+      columnName: String,
+      completeness: Double
+  ): ColumnProfile = {
+
+    val fakeColumnProfile = getFakeColumnProfileWithName(columnName)
+    inSequence {
+      (fakeColumnProfile.completeness _)
+        .expects()
+        .returns(completeness)
+        .anyNumberOfTimes()
+    }
+
+    fakeColumnProfile
+  }
+
+  def getFakeNumericColumnProfileWithMinMaxMeanAndStdDev(
+      columnName: String,
+      completeness: Double,
+      dataType: DataTypeInstances.Value,
+      minimum: Double,
+      maximum: Double,
+      mean: Double,
+      stdDev: Double
+  ): NumericColumnProfile = {
+
+    NumericColumnProfile(
+      column = columnName,
+      completeness = completeness,
+      approximateNumDistinctValues = 1000,
+      dataType = dataType,
+      isDataTypeInferred = false,
+      typeCounts = Map[String, Long](),
+      histogram = None,
+      kll = None,
+      mean = Some(mean),
+      maximum = Some(maximum),
+      minimum = Some(minimum),
+      sum = Some(1000.879),
+      stdDev = Some(1.023),
+      approxPercentiles = None
+    )
+  }
+
+  def getFakeColumnProfileWithNameAndApproxNumDistinctValues(
+      columnName: String,
+      approximateNumDistinctValues: Long
+  ): ColumnProfile = {
+
+    val fakeColumnProfile = getFakeColumnProfileWithName(columnName)
+    inSequence {
+      (fakeColumnProfile.approximateNumDistinctValues _)
+        .expects()
+        .returns(approximateNumDistinctValues)
+        .anyNumberOfTimes()
+    }
+
+    fakeColumnProfile
+  }
+
+  def getFakeColumnProfileWithColumnNameAndDataType(
+      columnName: String,
+      dataType: DataTypeInstances.Value
+  ): ColumnProfile = {
+
+    val fakeColumnProfile = getFakeColumnProfileWithName(columnName)
+    inSequence {
+      (fakeColumnProfile.dataType _)
+        .expects()
+        .returns(dataType)
+        .anyNumberOfTimes()
+    }
+
+    fakeColumnProfile
+  }
+
+  def getFakeColumnProfileWithColumnNameAndHistogram(
+      columnName: String,
+      histogram: Option[Distribution]
+  ): ColumnProfile = {
+
+    val fakeColumnProfile = getFakeColumnProfileWithName(columnName)
+    inSequence {
+      (fakeColumnProfile.histogram _)
+        .expects()
+        .returns(histogram)
+        .anyNumberOfTimes()
+    }
+
+    fakeColumnProfile
   }
 }
